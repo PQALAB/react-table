@@ -61,6 +61,14 @@ export default Base =>
       ) {
         this.setStateWithData(this.getDataModel(newState, oldState.data !== newState.data))
       }
+
+      if (this._listRef.current && this.resizeFlag == true)  {
+        this._cache.clearAll();
+        if (this._listRef) {
+          console.log("moo")
+          this._listRef.current.recomputeRowHeights();
+        }
+      }
     }
 
     calculateNewResolvedState (dataModel) {
