@@ -6,12 +6,13 @@ import Lifecycle from './lifecycle'
 import Methods from './methods'
 import defaultProps from './defaultProps'
 import propTypes from './propTypes'
-import { List, AutoSizer } from "react-virtualized";
+import { List, AutoSizer, CellMeasurer, CellMeasurerCache } from "react-virtualized";
 
 
 export const ReactTableDefaults = defaultProps
 
 export default class ReactTable extends Methods(Lifecycle(Component)) {
+  _cache = new CellMeasurerCache({ defaultHeight: 50, fixedWidth: true });
   static propTypes = propTypes
   static defaultProps = defaultProps
 
@@ -34,6 +35,8 @@ export default class ReactTable extends Methods(Lifecycle(Component)) {
     this.resizeColumnStart = this.resizeColumnStart.bind(this)
     this.resizeColumnEnd = this.resizeColumnEnd.bind(this)
     this.resizeColumnMoving = this.resizeColumnMoving.bind(this)
+    this._listRef = React.createRef()
+    this.resizeFlag = false
   }
 
   render () {
@@ -813,14 +816,39 @@ export default class ReactTable extends Methods(Lifecycle(Component)) {
       )
     }
 
- const rowRenderer = ({ key, index, style }) => {
-    const rowInfo = rows[index];
+ const rowRenderer = ({ key, index, parent, style }) => {
+    const rowInfo = pageRows[index];
+    const expandKeys = Object.keys(this.props.expanded).map(x=> parseInt(x))
+    if (expandKeys.length >= 1 && expandKeys.includes(index)) {
+      if (this.props.expanded[index] == true) {
+        if (this.resizeFlag == false) {
+          this.resizeFlag = true
+        }
+      }
+    }
 
     return (
-      <div key={key} style={style}>
-        {makePageRow(rowInfo.row, rowInfo.index, rowInfo.path)}
-      </div>
+    <CellMeasurer
+      cache={this._cache}
+      columnIndex={0}
+      key={key}
+      overscanRowCount={10}
+      parent={parent}
+      ref={element => { this.cellMeasurer = element; }}
+      rowIndex={index}
+    >
+      {({ measure }) => {
+        this.measure = measure.bind(this);
+
+        return (
+        <div key={key} style={style}>
+          {makePageRow(rowInfo, index)}
+        </div>
+        )
+      }}
+    </CellMeasurer>
     );
+  }
 
     const makeTable = () => (
       <div
@@ -853,14 +881,15 @@ export default class ReactTable extends Methods(Lifecycle(Component)) {
             <AutoSizer>
               {({ height, width }) => (
                 <List
+                  deferredMeasurementCache={this._cache}
+                  ref={this._listRef}
                   width={width}
                   height={height}
                   rowCount={pageRows.length}
-                  rowHeight={30}
+                  rowHeight={this._cache.rowHeight}
                   rowRenderer={rowRenderer}
                 />
               )}
-               {padRows.map(makePadRow)}
             </AutoSizer>
           </TbodyComponent>
           {hasColumnFooter ? makeColumnFooters() : null}
