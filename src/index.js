@@ -6,6 +6,8 @@ import Lifecycle from './lifecycle'
 import Methods from './methods'
 import defaultProps from './defaultProps'
 import propTypes from './propTypes'
+import { List, AutoSizer } from "react-virtualized";
+
 
 export const ReactTableDefaults = defaultProps
 
@@ -811,6 +813,15 @@ export default class ReactTable extends Methods(Lifecycle(Component)) {
       )
     }
 
+ const rowRenderer = ({ key, index, style }) => {
+    const rowInfo = rows[index];
+
+    return (
+      <div key={key} style={style}>
+        {makePageRow(rowInfo.row, rowInfo.index, rowInfo.path)}
+      </div>
+    );
+
     const makeTable = () => (
       <div
         className={classnames('ReactTable', className, rootProps.className)}
@@ -839,8 +850,18 @@ export default class ReactTable extends Methods(Lifecycle(Component)) {
             }}
             {...tBodyProps.rest}
           >
-            {pageRows.map((d, i) => makePageRow(d, i))}
-            {padRows.map(makePadRow)}
+            <AutoSizer>
+              {({ height, width }) => (
+                <List
+                  width={width}
+                  height={height}
+                  rowCount={pageRows.length}
+                  rowHeight={30}
+                  rowRenderer={rowRenderer}
+                />
+              )}
+               {padRows.map(makePadRow)}
+            </AutoSizer>
           </TbodyComponent>
           {hasColumnFooter ? makeColumnFooters() : null}
         </TableComponent>
