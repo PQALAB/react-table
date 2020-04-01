@@ -29,6 +29,7 @@ const config = {
     commonjs({
       namedExports: {
         'react-is': ['isValidElementType', 'isElement'],
+        'react-dom': ['findDomNode']
       },
     }),
   ],
